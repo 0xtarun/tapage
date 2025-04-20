@@ -79,35 +79,64 @@
   <script>
     const canvas = document.getElementById('matrix');
     const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    let canvasWidth = window.innerWidth;
+    let canvasHeight = window.innerHeight;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
 
-    let columns = Math.floor(canvas.width / 20);
-    let drops = Array(columns).fill(1);
+    let columns = Math.floor(canvasWidth / 20);
+    let drops = [];
+    for (let i = 0; i < columns; i++) {
+        drops[i] = 1; // Initialize all drops
+    }
+
+    // --- Animation Variables ---
+    let lastTime = 0;
+    const interval = 50; // Target interval in milliseconds (approx 20 FPS)
+    let animationFrameId;
 
     const draw = () => {
+      // Draw translucent black rectangle for fading effect
       ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
       ctx.fillStyle = '#0F0'; // Green text
       ctx.font = '15pt monospace';
 
+      // Loop through columns
       for (let i = 0; i < drops.length; i++) {
-        // Using Katakana characters (Unicode range 0x30A0 - 0x30FF)
-        const text = String.fromCharCode(0x30A0 + Math.random() * 96);
+        const text = String.fromCharCode(0x30A0 + Math.random() * 96); // Katakana characters
         ctx.fillText(text, i * 20, drops[i] * 20);
 
-        // Send drop back to top randomly after it has crossed the screen
-        // Adding randomness to when it resets gives a more varied effect
-        if (drops[i] * 20 > canvas.height && Math.random() > 0.975) {
+        // Reset drop randomly when it goes off screen
+        if (drops[i] * 20 > canvasHeight && Math.random() > 0.975) {
           drops[i] = 0;
         }
+        // Increment drop position
         drops[i]++;
       }
     };
 
-    let intervalId = setInterval(draw, 50);
+    // --- The Animation Loop using requestAnimationFrame ---
+    function animationLoop(timestamp) {
+      // Request the next frame *first* (common practice)
+      animationFrameId = requestAnimationFrame(animationLoop);
 
-    // Debounce function to limit resize handler calls
+      // Calculate delta time since last draw
+      const deltaTime = timestamp - lastTime;
+
+      // Only draw if enough time has passed (limits frame rate)
+      if (deltaTime > interval) {
+        // console.log('Drawing frame, deltaTime:', deltaTime); // DEBUG LOG
+        draw();
+        // Update lastTime to the current time for the next interval check
+        lastTime = timestamp;
+      }
+    }
+    // --- End Animation Loop ---
+
+
+    // Debounce function (remains the same)
     function debounce(func, wait, immediate) {
         var timeout;
         return function() {
@@ -125,25 +154,44 @@
 
     // Handle window resize
     const handleResize = debounce(() => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        columns = Math.floor(canvas.width / 20);
-        // Ensure drops array matches new number of columns
-        if (drops.length > columns) {
-            drops = drops.slice(0, columns);
-        } else {
-            while (drops.length < columns) {
-                drops.push(Math.floor(Math.random() * canvas.height / 20)); // Start new columns at random heights
+        console.log('Resizing...'); // DEBUG LOG
+        // Update canvas dimensions variables AND the canvas element itself
+        canvasWidth = window.innerWidth;
+        canvasHeight = window.innerHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        // Recalculate columns
+        let newColumns = Math.floor(canvasWidth / 20);
+        let oldColumns = columns;
+        columns = newColumns; // Update global columns count
+
+        // Adjust drops array size
+        if (newColumns < oldColumns) {
+            // If smaller, truncate the array
+            drops = drops.slice(0, newColumns);
+        } else if (newColumns > oldColumns) {
+            // If larger, add new drops starting at the top (or randomly)
+            for (let i = oldColumns; i < newColumns; i++) {
+                drops[i] = 1; // Or Math.floor(Math.random() * canvasHeight / 20);
             }
         }
-        // Optional: Redraw immediately after resize for faster feedback
-        // draw(); // Could cause performance issues if resizing rapidly
-    }, 250); // Adjust debounce delay as needed (250ms)
+         // No need to restart the loop, requestAnimationFrame continues
+         // No need to manually call draw(), the loop will handle it shortly
+
+    }, 250);
 
     window.addEventListener('resize', handleResize);
 
-    // Update year dynamically in the footer
+    // Update year dynamically (remains the same)
     document.getElementById("current-year").textContent = new Date().getFullYear();
+
+    // --- Start the animation ---
+    console.log('Starting animation loop...'); // DEBUG LOG
+    // Ensure the first frame runs by calling draw once maybe, or just start the loop
+    // draw(); // Optional: draw immediately once
+    requestAnimationFrame(animationLoop);
+
   </script>
 </body>
 </html>
