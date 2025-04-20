@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tarun Anand — Hacker & Thinker</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <style>
+    body { margin: 0; overflow-x: hidden; overflow-y: auto; }
+    #matrix { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+    .content { position: relative; z-index: 10; }
+    .section-bg { background-color: rgba(0, 0, 0, 0.8); border-radius: 0.5rem; padding: 2rem; }
+  </style>
+</head>
+<body class="font-mono text-green-500 pt-20">
+  <canvas id="matrix"></canvas>
+
+  <div class="content">
+    <nav class="fixed top-0 w-full z-20 p-6 flex justify-center space-x-8 bg-black bg-opacity-70">
+      <a href="#intro" class="hover:text-green-300">Intro</a>
+      <a href="#blogs" class="hover:text-green-300">Blogs</a>
+      <a href="#music" class="hover:text-green-300">Music</a>
+      <a href="#books" class="hover:text-green-300">Books</a>
+      <a href="#contact" class="hover:text-green-300">Contact</a>
+    </nav>
+
+    <section id="intro" class="max-w-3xl mx-auto my-8 section-bg">
+      <h1 class="text-4xl font-bold mb-4">Hey, I’m Tarun</h1>
+      <p class="text-lg">Bug bounty hunter, ethical hacker, and philosophical explorer. This is my personal space where I share thoughts, projects, and insights.</p>
+    </section>
+
+    <section id="blogs" class="max-w-3xl mx-auto my-8 section-bg space-y-4">
+      <h2 class="text-2xl font-semibold">📝 Blogs</h2>
+      <ul class="list-disc list-inside">
+        <li><a href="#" class="text-green-300 hover:underline">My First XSS Writeup</a> — Deep dive into bypass strategies.</li>
+      </ul>
+    </section>
+
+    <section id="music" class="max-w-3xl mx-auto my-8 section-bg space-y-4">
+      <h2 class="text-2xl font-semibold">🎵 Music Favs</h2>
+      <div>
+        <p class="font-medium">Rich Man Poor Man Beggar Man Thief — The Gladiators</p>
+        <div class="aspect-w-16 aspect-h-9 mt-2">
+          <iframe src="https://www.youtube.com/embed/X_7lQ1G_Xxk" frameborder="0" allowfullscreen class="w-full h-full rounded"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <section id="books" class="max-w-3xl mx-auto my-8 section-bg space-y-4">
+      <h2 class="text-2xl font-semibold">📚 Books</h2>
+      <div>
+        <h3 class="font-medium">Book Title</h3>
+        <p class="mt-2">A brief summary of why this book resonated with me...</p>
+      </div>
+    </section>
+
+    <section id="contact" class="max-w-3xl mx-auto my-8 section-bg space-y-4">
+      <h2 class="text-2xl font-semibold">📬 Contact</h2>
+      <p>Want to collab or just say hi? Reach out:</p>
+      <ul class="list-none">
+        <li><span class="text-green-300">Telegram:</span> @deepmirror</li>
+        <li><span class="text-green-300">Instagram:</span> @deepmirrorzone</li>
+        <li><span class="text-green-300">Mail:</span> deepmirror@protonmail.com</li>
+      </ul>
+    </section>
+
+    <footer class="mt-20 pb-10 text-center text-sm text-green-500">
+      © Tarun Anand — <span id="current-year"></span>
+    </footer>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const columns = Math.floor(canvas.width / 20);
+    const drops = Array(columns).fill(1);
+    const draw = () => {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0F0';
+      ctx.font = '15pt monospace';
+      for (let i = 0; i < columns; i++) {
+        const text = String.fromCharCode(0x30A0 + Math.random() * 96);
+        ctx.fillText(text, i * 20, drops[i] * 20);
+        if (drops[i] * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    };
+    setInterval(draw, 50);
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    // Update year dynamically
+    document.getElementById("current-year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
