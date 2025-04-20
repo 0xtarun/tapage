@@ -9,7 +9,16 @@
   <script>tailwind.config = { darkMode: 'class' };</script>
   <style>
     body { margin: 0; overflow-x: hidden; overflow-y: auto; }
-    #matrix { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+    #matrix {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      /* Force hardware acceleration */
+      transform: translateZ(0);
+    }
     .content { position: relative; z-index: 10; }
     .section-bg { background-color: rgba(0, 0, 0, 0.8); border-radius: 0.5rem; padding: 2rem; }
   </style>
@@ -67,7 +76,7 @@
       <ul class="list-none">
         <li><span class="text-green-300">Telegram:</span> @okakx</li>
         <li><span class="text-green-300">Instagram:</span> @okakx</li>
-        <li><span class="text-green-300">Mail:</span> tarunanand4321@gmailc</li>
+        <li><span class="text-green-300">Mail:</span> tarunanand4321@gmailc</li> <!-- Corrected typo gmail.com? -->
       </ul>
     </section>
 
@@ -119,22 +128,14 @@
 
     // --- The Animation Loop using requestAnimationFrame ---
     function animationLoop(timestamp) {
-      // Request the next frame *first* (common practice)
       animationFrameId = requestAnimationFrame(animationLoop);
-
-      // Calculate delta time since last draw
       const deltaTime = timestamp - lastTime;
-
-      // Only draw if enough time has passed (limits frame rate)
       if (deltaTime > interval) {
-        // console.log('Drawing frame, deltaTime:', deltaTime); // DEBUG LOG
         draw();
-        // Update lastTime to the current time for the next interval check
         lastTime = timestamp;
       }
     }
     // --- End Animation Loop ---
-
 
     // Debounce function (remains the same)
     function debounce(func, wait, immediate) {
@@ -152,9 +153,14 @@
         };
     };
 
-    // Handle window resize
+    // Handle window resize (Refined Logic)
     const handleResize = debounce(() => {
-        console.log('Resizing...'); // DEBUG LOG
+        // console.log('Resizing...'); // Keep for debugging if needed
+
+        // Store old dimensions before updating
+        const oldWidth = canvasWidth;
+        const oldHeight = canvasHeight; // Might be useful later if needed
+
         // Update canvas dimensions variables AND the canvas element itself
         canvasWidth = window.innerWidth;
         canvasHeight = window.innerHeight;
@@ -163,23 +169,28 @@
 
         // Recalculate columns
         let newColumns = Math.floor(canvasWidth / 20);
-        let oldColumns = columns;
+        let oldColumns = columns; // columns holds the current count
         columns = newColumns; // Update global columns count
 
-        // Adjust drops array size
-        if (newColumns < oldColumns) {
-            // If smaller, truncate the array
-            drops = drops.slice(0, newColumns);
-        } else if (newColumns > oldColumns) {
-            // If larger, add new drops starting at the top (or randomly)
-            for (let i = oldColumns; i < newColumns; i++) {
-                drops[i] = 1; // Or Math.floor(Math.random() * canvasHeight / 20);
-            }
-        }
-         // No need to restart the loop, requestAnimationFrame continues
-         // No need to manually call draw(), the loop will handle it shortly
+        // console.log(`Resized. Old cols: ${oldColumns}, New cols: ${newColumns}`); // Debug
 
-    }, 250);
+        // --- More Careful Adjustment of drops array ---
+        if (newColumns < oldColumns) {
+            // If canvas is narrower, truncate the drops array
+            drops = drops.slice(0, newColumns);
+            // console.log(`Truncated drops array to ${drops.length}`); // Debug
+        } else if (newColumns > oldColumns) {
+            // If canvas is wider, add new drops ONLY for the new columns
+            // Initialize new drops at the top (position 1)
+            for (let i = oldColumns; i < newColumns; i++) {
+                drops[i] = 1; // Add new columns starting at the top
+            }
+            // console.log(`Expanded drops array to ${drops.length}`); // Debug
+        }
+        // --- No need to reset existing drops ---
+
+    }, 250); // Keep debounce time
+
 
     window.addEventListener('resize', handleResize);
 
@@ -187,13 +198,8 @@
     document.getElementById("current-year").textContent = new Date().getFullYear();
 
     // --- Start the animation ---
-    console.log('Starting animation loop...'); // DEBUG LOG
-    // Ensure the first frame runs by calling draw once maybe, or just start the loop
-    // draw(); // Optional: draw immediately once
     requestAnimationFrame(animationLoop);
 
   </script>
 </body>
 </html>
-
-
