@@ -18,12 +18,13 @@
   <canvas id="matrix"></canvas>
 
   <div class="content">
-    <nav class="fixed top-0 w-full z-20 p-6 flex justify-center space-x-8 bg-black bg-opacity-70">
-      <a href="#intro" class="hover:text-green-300">Intro</a>
-      <a href="#blogs" class="hover:text-green-300">Blogs</a>
-      <a href="#music" class="hover:text-green-300">Music</a>
-      <a href="#books" class="hover:text-green-300">Books</a>
-      <a href="#contact" class="hover:text-green-300">Contact</a>
+    <!-- Corrected Nav -->
+    <nav class="fixed top-0 w-full z-20 p-4 sm:p-6 flex justify-center space-x-4 sm:space-x-8 bg-black bg-opacity-70 overflow-x-auto">
+      <a href="#intro" class="hover:text-green-300 whitespace-nowrap">Intro</a>
+      <a href="#blogs" class="hover:text-green-300 whitespace-nowrap">Blogs</a>
+      <a href="#music" class="hover:text-green-300 whitespace-nowrap">Music</a>
+      <a href="#books" class="hover:text-green-300 whitespace-nowrap">Books</a>
+      <a href="#contact" class="hover:text-green-300 whitespace-nowrap">Contact</a>
     </nav>
 
     <section id="intro" class="max-w-3xl mx-auto my-8 section-bg">
@@ -35,6 +36,7 @@
       <h2 class="text-2xl font-semibold">📝 Blogs</h2>
       <ul class="list-disc list-inside">
         <li><a href="#" class="text-green-300 hover:underline">My First XSS Writeup</a> — Deep dive into bypass strategies.</li>
+        <!-- Add more blog posts here -->
       </ul>
     </section>
 
@@ -43,9 +45,11 @@
       <div>
         <p class="font-medium">Rich Man Poor Man Beggar Man Thief — The Gladiators</p>
         <div class="aspect-w-16 aspect-h-9 mt-2">
+          <!-- Note: Tailwind aspect-ratio plugin might be needed if not using JIT/v3+ -->
           <iframe src="https://www.youtube.com/embed/X_7lQ1G_Xxk" frameborder="0" allowfullscreen class="w-full h-full rounded"></iframe>
         </div>
       </div>
+      <!-- Add more music items here -->
     </section>
 
     <section id="books" class="max-w-3xl mx-auto my-8 section-bg space-y-4">
@@ -54,6 +58,7 @@
         <h3 class="font-medium">Book Title</h3>
         <p class="mt-2">A brief summary of why this book resonated with me...</p>
       </div>
+      <!-- Add more book items here -->
     </section>
 
     <section id="contact" class="max-w-3xl mx-auto my-8 section-bg space-y-4">
@@ -62,7 +67,7 @@
       <ul class="list-none">
         <li><span class="text-green-300">Telegram:</span> @okakx</li>
         <li><span class="text-green-300">Instagram:</span> @okakx</li>
-        <li><span class="text-green-300">Mail:</span> tarunanand4321@gmail.com</li>
+        <li><span class="text-green-300">Mail:</span> tarunanand4321@gmailc</li>
       </ul>
     </section>
 
@@ -77,29 +82,70 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const columns = Math.floor(canvas.width / 20);
-    const drops = Array(columns).fill(1);
+    let columns = Math.floor(canvas.width / 20);
+    let drops = Array(columns).fill(1);
+
     const draw = () => {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#0F0';
+      ctx.fillStyle = '#0F0'; // Green text
       ctx.font = '15pt monospace';
-      for (let i = 0; i < columns; i++) {
+
+      for (let i = 0; i < drops.length; i++) {
+        // Using Katakana characters (Unicode range 0x30A0 - 0x30FF)
         const text = String.fromCharCode(0x30A0 + Math.random() * 96);
         ctx.fillText(text, i * 20, drops[i] * 20);
-        if (drops[i] * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+
+        // Send drop back to top randomly after it has crossed the screen
+        // Adding randomness to when it resets gives a more varied effect
+        if (drops[i] * 20 > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
         drops[i]++;
       }
     };
-    setInterval(draw, 50);
 
-    window.addEventListener('resize', () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
+    let intervalId = setInterval(draw, 50);
 
-    // Update year dynamically
+    // Debounce function to limit resize handler calls
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function() {
+            var context = this, args = arguments;
+            var later = function() {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    };
+
+    // Handle window resize
+    const handleResize = debounce(() => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        columns = Math.floor(canvas.width / 20);
+        // Ensure drops array matches new number of columns
+        if (drops.length > columns) {
+            drops = drops.slice(0, columns);
+        } else {
+            while (drops.length < columns) {
+                drops.push(Math.floor(Math.random() * canvas.height / 20)); // Start new columns at random heights
+            }
+        }
+        // Optional: Redraw immediately after resize for faster feedback
+        // draw(); // Could cause performance issues if resizing rapidly
+    }, 250); // Adjust debounce delay as needed (250ms)
+
+    window.addEventListener('resize', handleResize);
+
+    // Update year dynamically in the footer
     document.getElementById("current-year").textContent = new Date().getFullYear();
   </script>
 </body>
 </html>
+
+
