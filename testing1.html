@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tarun Anand — Hacker & Thinker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <style>
+    body { margin: 0; overflow-x: hidden; overflow-y: auto; }
+    #matrix {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      transform: translateZ(0);
+    }
+    .content {
+      position: relative;
+      z-index: 10;
+      padding-bottom: 5rem;
+    }
+
+    .window-content-area {
+        background-color: rgba(0, 0, 0, 0.8);
+        padding: 1.5rem;
+        border-radius: 0 0 0.5rem 0.5rem;
+        overflow-y: auto;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        color: #0F0;
+    }
+
+    .custom-window {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 600px;
+      max-height: 80%;
+      background-color: #000;
+      border: 1px solid #0F0;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 20px rgba(15, 255, 15, 0.5);
+      z-index: 15;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .custom-window.is-visible { display: flex; }
+    .custom-window.is-maximized { width: 95%; max-width: none; height: 95%; max-height: none; }
+
+    .window-title-bar {
+      background-color: #0F0;
+      color: #000;
+      padding: 0.5rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: default;
+      border-radius: 0.5rem 0.5rem 0 0;
+      flex-shrink: 0;
+    }
+
+    .window-controls { display: flex; gap: 0.5rem; }
+    .window-control-btn {
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      color: #000;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    .window-control-btn.close-btn { background-color: #FF5F56; }
+    .window-control-btn.maximize-btn { background-color: #FFBD2E; }
+    .window-control-btn.minimize-btn { background-color: #27C93F; }
+
+    .icon-tray {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-top: 2rem;
+        padding: 1rem;
+    }
+
+    .icon {
+        text-align: center;
+        cursor: pointer;
+        color: #0F0;
+        background-color: rgba(0, 0, 0, 0.6);
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(15, 255, 15, 0.3);
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .icon:hover {
+        color: #090;
+        border-color: #0F0;
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    /* Accessibility improvements */
+    .icon:focus, .window-control-btn:focus {
+        outline: 2px solid #0F0;
+        outline-offset: 2px;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 2rem;
+        height: 2rem;
+        border: 0.25em solid rgba(15, 255, 15, 0.3);
+        border-radius: 50%;
+        border-top-color: #0F0;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .minimized-tray {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.9);
+        border-top: 1px solid #0F0;
+        padding: 0.5rem;
+        display: flex;
+        gap: 1rem;
+        z-index: 20;
+    }
+
+    .minimized-icon {
+        padding: 0.5rem;
+        cursor: pointer;
+        border: 1px solid #0F0;
+        border-radius: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .is-dragging {
+        user-select: none;
+        cursor: move;
+        opacity: 0.9;
+    }
+
+    .sr-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+  </style>
+</head>
+<body class="font-mono text-green-500 pt-20">
+  <canvas id="matrix"></canvas>
+
+  <!-- <nav class="fixed top-0 w-full z-20 p-4 sm:p-6 flex justify-center space-x-4 sm:space-x-8 bg-black bg-opacity-70 overflow-x-auto">
+    <span class="text-green-500 text-lg font-bold whitespace-nowrap">Tarun Anand</span>
+  </nav> -->
+
+  <div class="content">
+    <section id="intro" class="max-w-3xl mx-auto my-8 window-content-area !rounded-t-lg !rounded-b-lg">
+      <h1 class="text-4xl font-bold mb-4">Hey, I’m Tarun</h1>
+      <p class="text-lg">Bug bounty hunter, ethical hacker, and philosophical explorer. This is my personal space where I share thoughts, projects, and insights.</p>
+    </section>
+
+    <div class="icon-tray max-w-3xl mx-auto">
+        <div class="icon" data-window-target="#blogs-window" role="button" aria-label="Blogs window" tabindex="0">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto mb-1">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-12-3H10.5a8.25 8.25 0 0 0 8.25-8.25V6.375m-15 3H9.75a8.25 8.25 0 0 1 8.25 8.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18V9.75Z" />
+            </svg>
+            <span>Blogs</span>
+        </div>
+        <div class="icon" data-window-target="#music-window" role="button" aria-label="Music window" tabindex="0">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto mb-1">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 9l10.5-3m0 6.5c0 1.92-3.03 3.5-6.75 3.5S6 18.42 6 16.5v-2.75m12 0a2.25 2.25 0 0 0-2.25-2.25H9m12 0a2.25 2.25 0 0 1-2.25 2.25H9m0 0V15m0 0a2.25 2.25 0 0 0-2.25 2.25V21m0 0v-.75m.75-.75 3-3 2.25 2.25.75.75 3-3m0 0-3-3-2.25 2.25-.75.75 3-3m0 0-3-3-2.25 2.25-.75.75 3-3" />
+            </svg>
+            <span>Music</span>
+        </div>
+        <div class="icon" data-window-target="#books-window" role="button" aria-label="Books window" tabindex="0">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto mb-1">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75v-7.5m0 0L6.75 6m5.25 5.75L17.25 6M18.75 3a2.25 2.25 0 0 0-2.25 2.25v15c0 1.03.926 1.916 1.97 1.97l.15.005A2.25 2.25 0 0 0 21 20.25V5.25A2.25 2.25 0 0 0 18.75 3Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 3a2.25 2.25 0 0 0-2.25 2.25v15c0 1.03.926 1.916 1.97 1.97L5.25 23A2.25 2.25 0 0 0 7.5 20.75V5.25A2.25 2.25 0 0 0 5.25 3Z" />
+            </svg>
+             <span>Books</span>
+        </div>
+        <div class="icon" data-window-target="#contact-window" role="button" aria-label="Contact window" tabindex="0">
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto mb-1">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+            </svg>
+            <span>Contact</span>
+        </div>
+    </div>
+
+    <!-- Windows -->
+    <div id="blogs-window" class="custom-window">
+        <div class="window-title-bar">
+            <span class="window-title">📝 Blogs</span>
+            <div class="window-controls">
+                <div class="window-control-btn minimize-btn" aria-label="Minimize window">-</div>
+                <div class="window-control-btn maximize-btn" aria-label="Maximize window">□</div>
+                <div class="window-control-btn close-btn" aria-label="Close window">×</div>
+            </div>
+        </div>
+        <div class="window-content-area"></div>
+    </div>
+
+    <div id="music-window" class="custom-window">
+         <div class="window-title-bar">
+            <span class="window-title">🎵 Music Favs</span>
+            <div class="window-controls">
+                <div class="window-control-btn minimize-btn">-</div>
+                <div class="window-control-btn maximize-btn">□</div>
+                <div class="window-control-btn close-btn">×</div>
+            </div>
+        </div>
+         <div class="window-content-area">
+            <div>
+                <p class="font-medium">Rich Man Poor Man Beggar Man Thief — The Gladiators</p>
+                <div class="aspect-w-16 aspect-h-9 mt-2">
+                    <div class="loading-spinner"></div>
+                    <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen class="w-full h-full rounded"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="books-window" class="custom-window">
+         <div class="window-title-bar">
+            <span class="window-title">📚 Books</span>
+            <div class="window-controls">
+                <div class="window-control-btn minimize-btn">-</div>
+                <div class="window-control-btn maximize-btn">□</div>
+                <div class="window-control-btn close-btn">×</div>
+            </div>
+        </div>
+        <div class="window-content-area">
+            <div>
+                <h3 class="font-medium text-green-300">The Art of Deception</h3>
+                <p class="mt-1 text-sm">Essential reading for understanding social engineering...</p>
+            </div>
+            <div>
+                <h3 class="font-medium text-green-300">Ghost in the Wires</h3>
+                <p class="mt-1 text-sm">Kevin Mitnick's thrilling autobiography...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="contact-window" class="custom-window">
+         <div class="window-title-bar">
+            <span class="window-title">📬 Contact</span>
+            <div class="window-controls">
+                <div class="window-control-btn minimize-btn">-</div>
+                <div class="window-control-btn maximize-btn">□</div>
+                <div class="window-control-btn close-btn">×</div>
+            </div>
+        </div>
+        <div class="window-content-area">
+             <p>Want to collab or just say hi? Reach out:</p>
+              <ul class="list-none space-y-2 mt-4">
+                <li><span class="text-green-300">Telegram:</span> @okakx</li>
+                <li><span class="text-green-300">Instagram:</span> @okakx</li>
+                <li><span class="text-green-300">Mail:</span> tarunanand4321@gmail.com</li>
+              </ul>
+        </div>
+    </div>
+
+    <footer class="mt-20 pb-10 text-center text-sm text-green-500">
+      © Tarun Anand — <span id="current-year"></span>
+    </footer>
+  </div>
+
+  <div class="minimized-tray" id="minimized-tray"></div>
+  <div class="sr-text" aria-live="polite">Screen reader updates</div>
+
+  <script>
+    // Matrix Animation
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+    let canvasWidth = window.innerWidth;
+    let canvasHeight = window.innerHeight;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    let columns = Math.floor(canvasWidth / 20);
+    let drops = Array(columns).fill(1);
+    let lastTime = 0;
+    const interval = 50;
+
+    const drawMatrix = () => {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      ctx.fillStyle = '#0F0';
+      ctx.font = '15pt monospace';
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = String.fromCharCode(0x30A0 + Math.random() * 96);
+        ctx.fillText(text, i * 20, drops[i] * 20);
+        if (drops[i] * 20 > canvasHeight && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    };
+
+    const matrixLoop = (timestamp) => {
+      requestAnimationFrame(matrixLoop);
+      if (timestamp - lastTime > interval) {
+        drawMatrix();
+        lastTime = timestamp;
+      }
+    };
+    requestAnimationFrame(matrixLoop);
+
+    // Window Manager
+    class WindowManager {
+      constructor() {
+        this.windows = new Map();
+        this.zIndex = 15;
+        this.dragging = null;
+        this.startX = 0;
+        this.startY = 0;
+        document.addEventListener('mousemove', this.handleDrag.bind(this));
+        document.addEventListener('mouseup', this.stopDrag.bind(this));
+        this.initWindows();
+      }
+
+      initWindows() {
+        document.querySelectorAll('.custom-window').forEach(window => {
+          const id = window.id;
+          this.windows.set(id, {
+            element: window,
+            minimized: false,
+            position: { x: 0, y: 0 },
+            size: { width: null, height: null }
+          });
+
+          window.querySelector('.window-title-bar').addEventListener('mousedown', (e) => this.startDrag(e, id));
+          window.querySelector('.close-btn').addEventListener('click', () => this.closeWindow(id));
+          window.querySelector('.maximize-btn').addEventListener('click', () => this.toggleMaximize(id));
+          window.querySelector('.minimize-btn').addEventListener('click', () => this.toggleMinimize(id));
+        });
+      }
+
+      startDrag(e, windowId) {
+        const window = this.windows.get(windowId);
+        this.dragging = windowId;
+        this.startX = e.clientX - window.position.x;
+        this.startY = e.clientY - window.position.y;
+        window.element.classList.add('is-dragging');
+        this.bringToFront(windowId);
+      }
+
+      handleDrag(e) {
+        if (!this.dragging) return;
+        const window = this.windows.get(this.dragging);
+        const x = e.clientX - this.startX;
+        const y = e.clientY - this.startY;
+        window.position = { x, y };
+        window.element.style.transform = `translate(${x}px, ${y}px)`;
+      }
+
+      stopDrag() {
+        if (!this.dragging) return;
+        this.windows.get(this.dragging).element.classList.remove('is-dragging');
+        this.dragging = null;
+      }
+
+      openWindow(windowId) {
+        const window = this.windows.get(windowId);
+        if (!window) return;
+        window.element.style.display = 'flex';
+        this.bringToFront(windowId);
+        if (windowId === 'blogs-window') this.loadBlogContent();
+      }
+
+      closeWindow(windowId) {
+        const window = this.windows.get(windowId);
+        window.element.style.display = 'none';
+      }
+
+      toggleMaximize(windowId) {
+        const window = this.windows.get(windowId);
+        const isMaximized = window.element.classList.toggle('is-maximized');
+        if (isMaximized) {
+          window.size = { width: window.element.offsetWidth, height: window.element.offsetHeight };
+          window.element.style.width = '95vw';
+          window.element.style.height = '95vh';
+        } else {
+          window.element.style.width = `${window.size.width}px`;
+          window.element.style.height = `${window.size.height}px`;
+        }
+      }
+
+      toggleMinimize(windowId) {
+        const window = this.windows.get(windowId);
+        window.minimized = !window.minimized;
+        window.element.style.display = window.minimized ? 'none' : 'flex';
+        window.minimized ? this.addToTray(windowId) : this.removeFromTray(windowId);
+      }
+
+      addToTray(windowId) {
+        const tray = document.getElementById('minimized-tray');
+        const icon = document.createElement('div');
+        icon.className = 'minimized-icon';
+        icon.textContent = document.querySelector(`#${windowId} .window-title`).textContent;
+        icon.onclick = () => this.toggleMinimize(windowId);
+        tray.appendChild(icon);
+      }
+
+      removeFromTray(windowId) {
+        const tray = document.getElementById('minimized-tray');
+        const icon = Array.from(tray.children).find(child => 
+          child.textContent === document.querySelector(`#${windowId} .window-title`).textContent
+        );
+        if (icon) tray.removeChild(icon);
+      }
+
+      bringToFront(windowId) {
+        this.zIndex++;
+        this.windows.get(windowId).element.style.zIndex = this.zIndex;
+      }
+
+      loadBlogContent() {
+        const container = document.querySelector('#blogs-window .window-content-area');
+        container.innerHTML = `<div class="loading-spinner"></div><p class="sr-text">Loading blog posts...</p>`;
+        
+        setTimeout(() => {
+          container.innerHTML = [
+            { title: "Bypassing Modern XSS Filters", date: "2024-03-15", desc: "Deep dive into bypass strategies for Next-gen WAFs" },
+            { title: "API Security Pitfalls", date: "2024-02-28", desc: "Common GraphQL misconfigurations" },
+            { title: "Ethical Hacking 101", date: "2024-01-10", desc: "Bug bounty hunting basics" }
+          ].map(blog => `
+            <article class="mb-4">
+              <h3 class="text-green-300 font-medium">${blog.title}</h3>
+              <time class="text-sm opacity-75">${blog.date}</time>
+              <p class="mt-1">${blog.desc}</p>
+              <a href="#" class="inline-block mt-2 px-3 py-1 bg-green-900/50 hover:bg-green-900/70 rounded">
+                Read more →
+              </a>
+            </article>
+          `).join('');
+        }, 1000);
+      }
+    }
+
+    // Initialize
+    const windowManager = new WindowManager();
+    document.getElementById("current-year").textContent = new Date().getFullYear();
+
+    // Event Listeners
+    document.querySelectorAll('.icon').forEach(icon => {
+      icon.addEventListener('click', () => windowManager.openWindow(icon.dataset.windowTarget.slice(1)));
+    });
+
+    document.querySelectorAll('iframe').forEach(iframe => {
+      const spinner = document.createElement('div');
+      spinner.className = 'loading-spinner';
+      iframe.parentElement.prepend(spinner);
+      iframe.addEventListener('load', () => spinner.remove());
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') document.querySelectorAll('.custom-window').forEach(w => windowManager.closeWindow(w.id));
+    });
+  </script>
+</body>
+</html>
