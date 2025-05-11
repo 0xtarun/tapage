@@ -28,7 +28,7 @@
   <video id="videoInput" playsinline style="display:none;"></video>
   <canvas id="canvasOutput"></canvas>
 
-  <!-- 1) Load OpenCV.js WITHOUT async to ensure proper onRuntimeInitialized firing -->
+  <!-- Load OpenCV.js WITHOUT async to ensure proper onRuntimeInitialized firing -->
   <script src="https://docs.opencv.org/4.7.0/opencv.js"></script>
   <script>
     const video = document.getElementById('videoInput');
@@ -37,7 +37,7 @@
     let cap, src, gray, thresh, contours, hierarchy;
     let isCvReady = false, isVideoReady = false;
 
-    // 2) Start camera
+    // Start camera
     navigator.mediaDevices.getUserMedia({ video: { facingMode:'environment' }, audio:false })
       .then(stream => {
         video.srcObject = stream;
@@ -48,32 +48,38 @@
         console.error(err);
       });
 
-    // 3) Detect when video metadata (dimensions) is ready
+    // Detect when video metadata (dimensions) is ready
     video.addEventListener('loadedmetadata', () => {
       isVideoReady = true;
       maybeInit();
     });
 
-    // 4) Detect when OpenCV is ready
+    // Detect when OpenCV is ready
     function onOpenCvReady() {
       isCvReady = true;
       maybeInit();
     }
     cv['onRuntimeInitialized'] = onOpenCvReady;
 
-    // 5) Only initialize Mats & start loop once both video & cv are ready
+    // Initialize when both video & cv are ready
     function maybeInit() {
       if (!isCvReady || !isVideoReady) return;
 
-      // Resize canvas to video size
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // Get actual stream resolution
+      const settings = video.srcObject.getVideoTracks()[0].getSettings();
+      const w = settings.width || video.videoWidth;
+      const h = settings.height || video.videoHeight;
+      console.log(`Stream size: ${w}x${h}`);
+
+      // Resize canvas to match stream
+      canvas.width  = w;
+      canvas.height = h;
 
       // Allocate OpenCV mats
       cap       = new cv.VideoCapture(video);
-      src       = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
-      gray      = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
-      thresh    = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
+      src       = new cv.Mat(h, w, cv.CV_8UC4);
+      gray      = new cv.Mat(h, w, cv.CV_8UC1);
+      thresh    = new cv.Mat(h, w, cv.CV_8UC1);
       contours  = new cv.MatVector();
       hierarchy = new cv.Mat();
 
@@ -81,9 +87,14 @@
       requestAnimationFrame(processFrame);
     }
 
-    // 6) Processing loop
+    // Processing loop
     function processFrame() {
-      cap.read(src);
+      try {
+        cap.read(src);
+      } catch (err) {
+        console.error('Capture error:', err);
+        return;
+      }
       cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
       cv.GaussianBlur(gray, gray, new cv.Size(5,5), 0);
       cv.threshold(gray, thresh, 150, 255, cv.THRESH_BINARY);
@@ -105,7 +116,7 @@
       requestAnimationFrame(processFrame);
     }
 
-    // 7) Clean up on page unload
+    // Clean up on page unload
     window.addEventListener('beforeunload', () => {
       [src, gray, thresh, hierarchy].forEach(m => m && m.delete());
       contours && contours.delete();
