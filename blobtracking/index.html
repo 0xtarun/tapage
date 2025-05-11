@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Blob Tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { width:100%; height:100%; background:#000; display:flex; align-items:center; justify-content:center; }
+    #canvasOutput {
+      width:100vw;
+      height:auto;
+      max-height:100vh;
+      border:2px solid #fff;
+      border-radius:8px;
+    }
+    #loading {
+      position:absolute;
+      color:#fff;
+      font-family:sans-serif;
+      font-size:1rem;
+      text-align:center;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Loading OpenCV…</div>
+  <video id="videoInput" playsinline style="display:none;"></video>
+  <canvas id="canvasOutput"></canvas>
+
+  <!-- 1) Load OpenCV.js WITHOUT async to ensure proper onRuntimeInitialized firing -->
+  <script src="https://docs.opencv.org/4.7.0/opencv.js"></script>
+  <script>
+    const video = document.getElementById('videoInput');
+    const canvas = document.getElementById('canvasOutput');
+    const loading = document.getElementById('loading');
+    let cap, src, gray, thresh, contours, hierarchy;
+    let isCvReady = false, isVideoReady = false;
+
+    // 2) Start camera
+    navigator.mediaDevices.getUserMedia({ video: { facingMode:'environment' }, audio:false })
+      .then(stream => {
+        video.srcObject = stream;
+        video.play();
+      })
+      .catch(err => {
+        loading.textContent = 'Camera access denied';
+        console.error(err);
+      });
+
+    // 3) Detect when video metadata (dimensions) is ready
+    video.addEventListener('loadedmetadata', () => {
+      isVideoReady = true;
+      maybeInit();
+    });
+
+    // 4) Detect when OpenCV is ready
+    function onOpenCvReady() {
+      isCvReady = true;
+      maybeInit();
+    }
+    cv['onRuntimeInitialized'] = onOpenCvReady;
+
+    // 5) Only initialize Mats & start loop once both video & cv are ready
+    function maybeInit() {
+      if (!isCvReady || !isVideoReady) return;
+
+      // Resize canvas to video size
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Allocate OpenCV mats
+      cap       = new cv.VideoCapture(video);
+      src       = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+      gray      = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
+      thresh    = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
+      contours  = new cv.MatVector();
+      hierarchy = new cv.Mat();
+
+      loading.style.display = 'none';
+      requestAnimationFrame(processFrame);
+    }
+
+    // 6) Processing loop
+    function processFrame() {
+      cap.read(src);
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      cv.GaussianBlur(gray, gray, new cv.Size(5,5), 0);
+      cv.threshold(gray, thresh, 150, 255, cv.THRESH_BINARY);
+      cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+      // draw rectangles
+      for (let i = 0; i < contours.size(); i++) {
+        const cnt = contours.get(i);
+        const rect = cv.boundingRect(cnt);
+        if (rect.width * rect.height >= 500) {
+          cv.rectangle(src,
+            new cv.Point(rect.x, rect.y),
+            new cv.Point(rect.x + rect.width, rect.y + rect.height),
+            new cv.Scalar(255, 0, 0, 255), 2);
+        }
+        cnt.delete();
+      }
+      cv.imshow('canvasOutput', src);
+      requestAnimationFrame(processFrame);
+    }
+
+    // 7) Clean up on page unload
+    window.addEventListener('beforeunload', () => {
+      [src, gray, thresh, hierarchy].forEach(m => m && m.delete());
+      contours && contours.delete();
+    });
+  </script>
+</body>
+</html>
