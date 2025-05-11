@@ -207,6 +207,12 @@ header {
     transition: width 0.3s ease-in-out; /* Smooth transition */
     margin-bottom: 20px;
 }
+
+.progress-container { /* Added to move inline style to CSS */
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px; /* Overall margin for the container */
+}
 /* Progress Text */
 .progress-percentage {
     margin-left: 10px; /* Add some space between the bar and the text */
@@ -251,4 +257,69 @@ header {
 
 .info-btn:hover .tooltip {
     visibility: visible;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 600px) {
+    body {
+        padding: 20px 15px; /* Reduce body padding */
+    }
+
+    .container {
+        padding: 20px; /* Reduce container padding */
+    }
+
+    header h1 {
+        font-size: 1.6rem; /* Adjust header font size */
+    }
+
+    .datetime {
+        font-size: 0.9rem; /* Adjust datetime font size */
+    }
+
+    .input-container {
+        display: flex; /* Change from grid to flex */
+        flex-direction: column; /* Stack input and button vertically */
+        gap: 10px; /* Keep the gap between them */
+    }
+
+    #taskInput {
+        font-size: 15px; /* Slightly smaller font for input */
+    }
+
+    #addTaskBtn {
+        width: 100%; /* Make button full width */
+        padding: 12px 15px; /* Adjust padding for better touch target */
+        font-size: 15px;
+    }
+
+    .filters {
+        flex-wrap: wrap; /* Allow filter buttons to wrap */
+        justify-content: center; /* Center wrapped buttons */
+        gap: 6px;
+    }
+
+    .filters button {
+        font-size: 13px;
+        padding: 5px 8px;
+    }
+
+    .task-item {
+        padding: 10px 12px;
+        font-size: 0.95rem; /* Adjust task item font size */
+    }
+
+    .progress-container {
+        flex-direction: column; /* Stack progress bar and percentage text */
+        align-items: stretch; /* Stretch items to full width */
+    }
+
+    .progress-bar-container {
+        height: 12px; /* Slightly smaller bar height */
+        margin-bottom: 5px; /* Space between bar and text */
+    }
+    .progress-percentage {
+        margin-left: 0; /* Remove left margin as it's stacked now */
+        text-align: center; /* Center the percentage text */
+    }
 }
