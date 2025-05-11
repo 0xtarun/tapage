@@ -55,12 +55,21 @@
     <div id="status">Initializing...</div>
 
     <script>
+        console.log("Script execution started."); // 1. Check if script runs at all
         const video = document.getElementById('video');
         const canvas = document.getElementById('videoCanvas');
         const ctx = canvas.getContext('2d');
         const thresholdInput = document.getElementById('threshold');
         const thresholdValueSpan = document.getElementById('thresholdValue');
         const statusDiv = document.getElementById('status');
+
+        // 2. Check for getUserMedia support
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            const errorMsg = "Error: getUserMedia() is not supported by your browser. Please use a modern browser (Chrome, Firefox, Edge, Safari) and ensure you are not on an insecure origin (use HTTPS or localhost).";
+            statusDiv.textContent = errorMsg;
+            alert(errorMsg);
+            throw new Error(errorMsg); // Stop script execution
+        }
 
         let currentThreshold = parseInt(thresholdInput.value, 10);
         const MIN_BLOB_PIXELS = 50; // Minimum number of pixels for a blob to be considered
@@ -117,7 +126,7 @@
                 };
             } catch (err) {
                 console.error("Error accessing camera:", err);
-                statusDiv.textContent = `Error: ${err.name} - ${err.message}. Ensure camera permission.`;
+                statusDiv.textContent = `Error accessing camera: ${err.name} - ${err.message}. Please ensure you've granted camera permission. If you're opening this as a local file (file://), try serving it via a local web server (http://localhost).`;
                 alert(`Could not access the camera: ${err.message}`);
             }
         }
