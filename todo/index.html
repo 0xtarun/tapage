@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TO DO LIST</title>
+    <link rel="stylesheet" href="fonts.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>TO DO LIST</h1>
+            <div id="datetime" class="datetime"></div>
+        </header>
+
+        <div class="input-container">
+            <input type="text" id="taskInput" placeholder="Enter new task..." autocomplete="off">
+            <button id="addTaskBtn">Add Task</button>
+        </div>
+
+        <div class="filters">
+            <button id="allBtn" class="active">All</button>
+            <button id="activeBtn">Active</button>
+            <button id="completedBtn">Completed</button>
+        </div>
+
+        <ul id="taskList"></ul>
+
+        <div class="progress-container" style="display: flex; align-items: center;">
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <span id="progress-percentage" class="progress-percentage">(0% completed)</span>
+        </div>
+        <div class="task-stats">
+            <span id="tasksLeft">0 tasks left</span>
+            <button id="clearCompleted">Clear Completed</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
